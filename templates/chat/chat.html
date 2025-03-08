@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+  
+<div class="flex items-center justify-center h-full">
+    <!-- Chat Container -->
+    <div class="w-full max-w-6xl bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col">
+        <div id="chat-box" class="flex-1 space-y-4 overflow-y-auto max-h-96">
+            {% for message in messages %}
+                {% if message.sender == request.user %}
+                    <!-- Outgoing Message -->
+                    <div class="flex justify-end">
+                        <div class="bg-blue-600 text-white p-3 rounded-lg max-w-xs relative">
+                            {{ message.message }}
+                            <span class="text-xs text-gray-200 absolute bottom-0 right-2">{{ message.timestamp|date:"H:i" }}</span>
+                        </div>
+                    </div>
+                {% else %} 
+                    <!-- Incoming Message -->
+                    <div class="flex justify-start">
+                        <div class="bg-gray-700 text-white p-3 rounded-lg max-w-xs relative">
+                            {{ message.message }} 
+                            <span class="text-xs text-gray-400 absolute bottom-0 right-2">{{ message.timestamp|date:"H:i" }}</span>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <!-- Input Box -->
+        <form method="post" action="{% url 'chat' r.username %}" class="mt-4 flex items-center bg-gray-700 p-3 rounded-lg">
+            {% csrf_token %}
+            <input name="msg" type="text" placeholder="Type a message..." class="flex-1 p-2 bg-gray-600 text-white rounded-lg outline-none" required>
+            <button type="submit" class="ml-3 bg-blue-600 p-3 rounded-lg hover:bg-blue-500">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="white" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+                </svg>
+            </button>
+        </form> 
+    </div>
+</div>
+<script>
+        function fetchMessages() {
+            fetch(window.location.pathname + "get_messages/") // Calls Django API
+                .then(response => response.json()) // Convert response to JSON
+                .then(data => {
+                    let chatBox = document.getElementById("chat-box");
+                    chatBox.innerHTML = ""; // Clear chat box
+    
+                    data.messages.forEach(msg => {
+                        let messageDiv = document.createElement("div");
+                        messageDiv.classList.add("flex", msg.sender === "{{ request.user.username }}" ? "justify-end" : "justify-start");
+    
+                        messageDiv.innerHTML = `
+                            <div class="bg-${msg.sender === "{{ request.user.username }}" ? "blue-600" : "gray-700"} text-white p-3 rounded-lg max-w-xs relative">
+                                ${msg.message}
+                                <span class="block text-xs text-gray-400 mt-1 text-right">${msg.timestamp}</span>
+                            </div>
+                        `;
+                        chatBox.appendChild(messageDiv);
+                    });
+    
+                    chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to the latest message
+                })
+                .catch(error => console.error("Error fetching messages:", error));
+        }
+    
+        // Fetch messages every 500ms
+        setInterval(fetchMessages, 500);
+</script>
+{% endblock content %}
